@@ -1,0 +1,37 @@
+name: FE5
+defaults:
+  run:
+    shell: bash -o pipefail -i {0}
+
+on:
+  push
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/foamscience/jammy-openfoam:fe5
+      options: --cpus 2 --user openfoam
+      env:
+        CATCH_TIMEOUT: 20
+
+    steps:
+      - name: Checkout activity branch
+        uses: actions/checkout@v3
+
+      - name: Compile and Test
+        run: |
+          sudo chown openfoam: /opt/foam-extend-5.0
+          source /opt/foam-extend-5.0/etc/bashrc
+          mkdir -p $FOAM_USER_LIBBIN
+          wmake libso src/MyLib
+          git clone https://github.com/FoamScience/foamUT ut
+          export FOAM_FOAMUT=$PWD
+          rm -rf tests/exampleTests
+          ln -s "$PWD/tests/myClassTests" "$PWD/ut/tests/myClassTests"
+          cd ut
+          sed -i '22s/ > / | sudo tee /' Alltest
+          sed -i 's/make install/sudo make install/' Alltest
+          sed -i 's/rm -rf "/sudo rm -rf "/' Alltest
+          sed -i 's/mpirun/mpirun --oversubscribe/g' Alltest
+          ./Alltest

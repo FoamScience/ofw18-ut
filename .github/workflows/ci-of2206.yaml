@@ -1,0 +1,32 @@
+name: OF2206
+defaults:
+  run:
+    shell: bash -o pipefail -i {0}
+
+on:
+  push
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/foamscience/jammy-openfoam:v2206
+      options: --cpus 2 --user openfoam
+      env:
+        CATCH_TIMEOUT: 20
+
+    steps:
+      - name: Checkout activity branch
+        uses: actions/checkout@v3
+
+      - name: Compile and Test
+        run: |
+          source /usr/lib/openfoam/openfoam2206/etc/bashrc
+          wmake libso src/MyLib
+          git clone https://github.com/FoamScience/foamUT ut
+          export FOAM_FOAMUT=$PWD
+          rm -rf ut/tests/exampleTests
+          ln -s "$PWD/tests/myClassTests" "$PWD/ut/tests/myClassTests"
+          cd ut
+          sed -i 's/mpirun/mpirun --oversubscribe/g' Alltest
+          ./Alltest

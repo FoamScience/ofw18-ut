@@ -1,0 +1,5 @@
+$(FOAM_FOAMUT)/tests/testDriver.C
+
+myClassTest.C
+
+EXE = ./testDriver
