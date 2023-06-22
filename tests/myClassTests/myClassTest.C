@@ -18,6 +18,26 @@ extern argList* argsPtr;
 
 // ********************************************************************************************** //
 
+jmp_buf tst_env; // POSIX code, don't really care what happens on Windows
+void onSigAbrt(int signum) {
+    signal (signum, SIG_DFL); longjmp (tst_env, 1);
+}
+void tryAndCatchAbortingCode(std::function<void(void)> func) {
+    FatalError.throwExceptions();
+    if (setjmp (tst_env) == 0) {
+        signal(SIGABRT, &onSigAbrt); signal(SIGTERM, &onSigAbrt);
+        func();
+        signal(SIGABRT, SIG_DFL); signal(SIGTERM, SIG_DFL);
+    }
+    else {
+        Pout<< "Either this code tried to abort or there was"
+        " an attempt to terminate it (e.g. with a timeout) on " <<
+            Pstream::myProcNo() << "..." << endl;
+        bool abortedOrTerminated = true;
+        REQUIRE(abortedOrTerminated == false);
+    }
+}
+
 TEST_CASE("myClass objects are properly constructed", "[cavity][serial][parallel]")
 {
     Time& runTime = *timePtr;
@@ -66,5 +86,13 @@ TEST_CASE("myClass objects are properly constructed", "[cavity][serial][parallel
         dict.set("setting", 10);
         myClass obj(mesh, dict);
         REQUIRE(obj.setting() == 10);
+    }
+
+    SECTION("An infinite loop is timed-out") {
+        tryAndCatchAbortingCode(
+            [&]() {
+                while(true) {}
+            }
+        );
     }
 }
