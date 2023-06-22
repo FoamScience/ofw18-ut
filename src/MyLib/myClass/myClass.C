@@ -19,7 +19,8 @@ Foam::myClass::myClass
 :
     mesh_(mesh),
     dict_(dict),
-    velocityIsFound_(mesh.foundObject<volVectorField>("U"))
+    velocityIsFound_(mesh.foundObject<volVectorField>("U")),
+    setting_(dict.lookupOrDefault<label>("setting", 0))
 {}
 
 

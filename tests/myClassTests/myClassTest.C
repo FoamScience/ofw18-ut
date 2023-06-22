@@ -36,17 +36,35 @@ TEST_CASE("myClass objects are properly constructed", "[cavity][serial][parallel
         )
     );
 
-    // Second class dependency
-    dictionary dict;
+    // Create the actual U field
+    volVectorField U
+    (
+        IOobject
+        (
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedVector("initU", dimVelocity, vector(0,0,0))
+    );
+
 
     SECTION("Velocity is found if mesh is read from disk correctly") {
+        // Second class dependency
+        dictionary dict;
         myClass obj(mesh, dict);
+
         REQUIRE(obj.velocityIsFound());
     }
 
     SECTION("Setting value matches what is supplied in the config. dictionary") {
-        myClass obj(mesh, dict);
+        // Second class dependency
+        dictionary dict;
         dict.set("setting", 10);
+        myClass obj(mesh, dict);
         REQUIRE(obj.setting() == 10);
     }
 }
